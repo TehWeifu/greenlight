@@ -1,3 +1,3 @@
 # Greenlight
 
-API to fetch movie data
+Firelight is an API to fetch movie data
