@@ -221,3 +221,43 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
+	// Embed the new Filters struct.
+	var input struct {
+		Title  string
+		Genres []string
+		data.Filters
+	}
+
+	// Initialize a new Validator instance.
+	v := validator.New()
+
+	// Call r.URL.Query() to get the url.Values map containing the query string data.
+	qs := r.URL.Query()
+
+	// Use our helper to extract the title and genres query string value, falling back
+	// to defaults of an empty string and an empty slice respectively if they are not
+	// provided by the client
+	input.Title = app.readString(qs, "title", "")
+	input.Genres = app.readCSV(qs, "genres", []string{})
+
+	// Ge the page and page_size query string values as integers. Notice that we set
+	// the default page value to 1 and default page_size to 20, and that we pass the
+	// validator instance as the final argument here
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+
+	// Extract the sort query string value, falling back to "id" if it is not provided
+	// by the client (which will imply a ascending sort on  movie ID).
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+
+	// Check the Validator instance for any errors and use the fieldValidationResponse()
+	// helper to send the client a response if necessary
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+	}
+
+	// Dump the contents of the input struct in a HTTP response
+	fmt.Fprintf(w, "%+v\n", input)
+}
