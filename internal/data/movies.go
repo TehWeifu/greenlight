@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/lib/pq"
@@ -198,20 +199,28 @@ func (m *MovieModel) Delete(id int64) error {
 // Create a new GetAll() method which returns a slice of movies. Although we're not
 // using them right now, we've set this up to accept the various filter parameters as arguments.
 func (m *MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
-	// Use full-text search for the title filter.
-	query := `
+	// Update the SQL query to include the LIMIT and OFFSET clauses with placeholder
+	// parameter value.
+	query := fmt.Sprintf(`
 		SELECT id, created_at, title, year, runtime, genres, version
 		FROM movies
 		WHERE (TO_TSVECTOR('simple', title) @@ PLAINTO_TSQUERY('simple', $1) OR $1 = '')
 		AND (genres @> $2 OR $2 = '{}')
-		ORDER BY id`
+		ORDER BY %s %s, id ASC
+		LIMIT $3 OFFSET $4`, filters.sortColumn(), filters.sortDirection())
 
 	// create a context with a 3-second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	// Pass the title and genres as the placeholder parameter values.
-	rows, err := m.DB.QueryContext(ctx, query, title, pq.Array(genres))
+	// As our SQL now has quite a few placeholder parameter, let's collect the
+	// values for the placeholder in a slice. Notice here how we call the limit9) and
+	// offset() methods on the Filters struct to get the appropriate values for the
+	// LIMIT and OFFSET clauses.
+	args := []any{title, pq.Array(genres), filters.limit(), filters.offset()}
+
+	// And then pass the args slice to QueryContext() as a variadic parameter
+	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
