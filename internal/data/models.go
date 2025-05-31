@@ -16,6 +16,7 @@ var (
 // like a UserModel and PermissionModel, as our build progresses.
 type Models struct {
 	Movies MovieModel
+	Users  UserModel // Add a new Users field.
 }
 
 // For ease of use, we also add a New () method which return a Model struct containing
@@ -24,5 +25,6 @@ type Models struct {
 func NewModels(db *sql.DB) Models {
 	return Models{
 		Movies: MovieModel{DB: db},
+		Users:  UserModel{DB: db}, // Initialize a new UserModel instance.
 	}
 }
