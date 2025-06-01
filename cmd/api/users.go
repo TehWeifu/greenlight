@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/tehweifu/greenlight/internal/data"
 	"github.com/tehweifu/greenlight/internal/data/validator"
@@ -66,10 +67,28 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// After the user record has been created in the database, generate a new activation
+	// token for the user.
+	token, err := app.models.Tokens.New(user.ID, 3*24*time.Hour, data.ScopeActivation)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
 	// Use the background helper to execute an anonymous function that sends the welcome
 	// email.
 	app.background(func() {
-		err = app.mailer.Send(user.Email, "user_welcome.tmpl", user)
+		// As there are now multiple palaces of data that we want to pass to our email
+		// palpates we create a map to act as a 'holding structure' for the data. This
+		// contains the plaintext version of the activation token for the user, along
+		// with their ID.
+		data := map[string]any{
+			"activationToken": token.Plaintext,
+			"userID":          user.ID,
+		}
+
+		// Send the welcome email, passing in the map above as dynamic data.
+		err = app.mailer.Send(user.Email, "user_welcome.tmpl", data)
 		if err != nil {
 			// Importantly, if there is an error sending the email then we sue the
 			// app.logger.Error() helper to manage it, instead of the
