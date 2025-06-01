@@ -13,6 +13,7 @@ import (
 	// compiler complaining that the package isn't being used.
 	_ "github.com/lib/pq"
 	"github.com/tehweifu/greenlight/internal/data"
+	"github.com/tehweifu/greenlight/internal/mailer"
 )
 
 // Declare a string containing the application version number. Later in the book we'll
@@ -20,8 +21,7 @@ import (
 // number as a hard-codded global constant.
 const version = "1.0.0"
 
-// Add a db struct field to hold the configuration settings for our database connection
-// pool. For now this only holds the DSN, which we will read in from a command-line flag.
+// Update the config struct to hold the SMTP server settings.
 type config struct {
 	port int
 	env  string
@@ -39,13 +39,21 @@ type config struct {
 		burst   int
 		enabled bool
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
-// Add a models field to hold our new Models struct.
+// Update the application struct to hold a new Mailer instance.
 type application struct {
 	config config
 	logger *slog.Logger
 	models data.Models
+	mailer mailer.Mailer
 }
 
 func main() {
@@ -74,6 +82,16 @@ func main() {
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
 
+	// Read the SMTP server configuration settings into the config struct, using the
+	// Mailtrap settings as the default value. IMPORTANT: If you 're following along,
+	// make sure to replace de default value for smtp-username and smtp-password
+	// with your own Mailtrap credentials
+	flag.StringVar(&cfg.smtp.host, "smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 2525, "SMTP port")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", "a9232ad6ad8894", "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", "f53dbb8a8592d8", "SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@greenlight.com>", "SMTP sender")
+
 	flag.Parse()
 
 	// Initialize a new structured logger which writes log entries to the standard out
@@ -97,12 +115,13 @@ func main() {
 	// established.
 	logger.Info("database connection pool established")
 
-	// Use teh data.NewModels() function to initialize a Models struct, passing in the
-	// connection pool as a parameter
+	// Initialize a new Mailer instance using the settings from the command line
+	// flags, and add it to the application struct.
 	app := application{
 		config: cfg,
 		logger: logger,
 		models: data.NewModels(db),
+		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
 	// Call app.serve() to start the server.
