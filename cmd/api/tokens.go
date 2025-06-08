@@ -49,6 +49,12 @@ func (app *application) createAuthenticationTokenHandler(w http.ResponseWriter, 
 
 	// Check if the provided password matches the actual password for the suer.
 	match, err := user.Password.Matches(input.Password)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+	// If the passwords don't match, then we call the app.invalidCredentialsResponse()
+	// helper again and return
 	if !match {
 		app.invalidCredentialsResponse(w, r)
 		return
