@@ -3,4 +3,5 @@ http/
 sql/
 
 .env
+.envrc
 setup.bash
