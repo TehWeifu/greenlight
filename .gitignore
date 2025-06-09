@@ -5,3 +5,5 @@ sql/
 .env
 .envrc
 setup.bash
+
+bin/
