@@ -7,3 +7,4 @@ sql/
 setup.bash
 
 bin/
+vendor/
