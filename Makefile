@@ -76,4 +76,22 @@ audit:
 build/api:
 	@echo 'Building cmd/api'
 	go build -ldflags='-s' -o=./bin/api.exe ./cmd/api
-	go build -ldflags='-s' -o=./bin/linux_ad64/api ./cmd/api
+	go build -ldflags='-s' -o=./bin/linux_amd64/api ./cmd/api
+
+# ==================================================================================== #
+# PRODUCTION
+# ==================================================================================== #
+
+production_host_ip = '167.172.167.80'
+
+## production/connect: connect to the production server
+.PHONY: production/connect
+production/connect:
+	ssh greenlight@${production_host_ip}
+
+## production/deploy/api: deploy the api to production
+.PHONY: production/deploy/api
+production/deploy/api:
+	rsync -P ./bin/linux_amd64/api greenlight@${production_host_ip}:~
+	rsync -rP --delete ./migrations greenlight@${production_host_ip}:~
+	ssh -t greenlight@${production_host_ip} 'migrate -path ~/migrations -database $$GREENLIGHT_DB_DSN up'
