@@ -34,7 +34,8 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPut, "/v1/users/password", app.updateUserPasswordHandler)
 
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
-	// Add the POST /v1/tokens/password-reset endpoint
+	// Add the POST /v1/tokens/activation endpoint.
+	router.HandlerFunc(http.MethodPost, "/v1/tokens/activation", app.createActivationTokenHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/password-reset", app.createPasswordResetTokenHandler)
 
 	// Register a new GET /debug/vars endpoint pointing to the expvar handler.
