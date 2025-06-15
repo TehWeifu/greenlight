@@ -1,4 +1,11 @@
-http://wholian.me {
+# Set the email address that should be used to contact you if there is a problem with
+# your TLS certificates.
+{
+    email bvkvgxvt@gmail.com
+}
+
+# Remove the http:// prefix from your site address.
+wholian.me {
     respond /debug/* "Not Permitted" 403
     reverse_proxy localhost:4000
 }
